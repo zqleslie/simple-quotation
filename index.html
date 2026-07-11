@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简易报价单生成器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#f0fdf4',100:'#dcfce7',200:'#bbf7d0',300:'#86efac',400:'#4ade80',500:'#22c55e',600:'#16a34a',700:'#15803d',800:'#166534',900:'#14532d' },
+            slate: { 850:'#1e293b' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+    body { font-family: 'Noto Sans SC', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+    @media print {
+      body { background: white !important; }
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      #quotationPreview { box-shadow: none !important; margin: 0 !important; padding: 20px !important; }
+    }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body class="min-h-screen gradient-bg">
+
+  <!-- Header -->
+  <header class="text-center pt-6 pb-4 px-4 no-print">
+    <h1 class="text-3xl md:text-4xl font-black text-white mb-2">📄 简易报价单生成器</h1>
+    <p class="text-slate-400">填写信息，生成专业报价单，支持打印/导出 PDF</p>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 pb-12">
+    <div class="grid md:grid-cols-2 gap-6">
+
+      <!-- Input Panel -->
+      <div class="no-print">
+        <div class="bg-white rounded-2xl shadow-xl p-6">
+          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="bg-brand-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+            填写信息
+          </h2>
+
+          <!-- Company Info -->
+          <div class="space-y-3 mb-5">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">您的公司名称</label>
+              <input id="companyName" type="text" placeholder="例如：XX科技有限公司"
+                class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none transition text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">联系电话</label>
+              <input id="companyPhone" type="text" placeholder="例如：021-12345678"
+                class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none transition text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">邮箱</label>
+              <input id="companyEmail" type="text" placeholder="例如：info@company.com"
+                class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none transition text-sm">
+            </div>
+          </div>
+
+          <!-- Client Info -->
+          <div class="space-y-3 mb-5">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">客户名称</label>
+              <input id="clientName" type="text" placeholder="例如：XX贸易公司"
+                class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none transition text-sm">
+            </div>
+          </div>
+
+          <!-- Items -->
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-500">项目明细</label>
+              <button onclick="addItem()" class="text-xs bg-brand-500 hover:bg-brand-600 text-white px-3 py-1 rounded-lg transition font-medium">
+                + 添加项目
+              </button>
+            </div>
+            <div id="itemsList" class="space-y-2">
+              <!-- Items will be added here -->
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-5">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">备注</label>
+            <textarea id="notes" rows="2" placeholder="付款条件、交货期等..."
+              class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none transition text-sm resize-none"></textarea>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-2">
+            <button onclick="generatePreview()"
+              class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-xl text-sm shadow transition">
+              👁️ 生成预览
+            </button>
+            <button onclick="window.print()" id="printBtn" disabled
+              class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl text-sm shadow transition">
+              🖨️ 打印/PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Panel -->
+      <div>
+        <div class="sticky top-4">
+          <div class="no-print text-center mb-3">
+            <span class="text-slate-400 text-sm">← 填写后点击「生成预览」</span>
+          </div>
+          <div id="quotationPreview" class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="flex items-center justify-center h-64 text-gray-300">
+              <div class="text-center">
+                <div class="text-5xl mb-3">📋</div>
+                <p class="text-sm">预览区域</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+<script>
+let itemCount = 0;
+
+function addItem(name='', unit='', qty=1, price='') {
+  itemCount++;
+  const div = document.createElement('div');
+  div.className = 'fade-in bg-gray-50 rounded-lg p-3 grid grid-cols-12 gap-2 items-center';
+  div.id = 'item-' + itemCount;
+  div.innerHTML = `
+    <div class="col-span-12 md:col-span-5">
+      <input type="text" placeholder="项目名称" value="${escapeHtml(name)}"
+        class="item-name w-full px-2.5 py-2 rounded border border-gray-200 focus:border-brand-400 outline-none text-sm">
+    </div>
+    <div class="col-span-4 md:col-span-2">
+      <input type="text" placeholder="单位" value="${escapeHtml(unit)}"
+        class="item-unit w-full px-2.5 py-2 rounded border border-gray-200 focus:border-brand-400 outline-none text-sm">
+    </div>
+    <div class="col-span-3 md:col-span-2">
+      <input type="number" placeholder="数量" value="${qty}" min="1"
+        class="item-qty w-full px-2.5 py-2 rounded border border-gray-200 focus:border-brand-400 outline-none text-sm">
+    </div>
+    <div class="col-span-4 md:col-span-2">
+      <input type="number" placeholder="单价" value="${price}" min="0" step="0.01"
+        class="item-price w-full px-2.5 py-2 rounded border border-gray-200 focus:border-brand-400 outline-none text-sm">
+    </div>
+    <div class="col-span-1 md:col-span-1 flex justify-end">
+      <button onclick="removeItem('item-${itemCount}')" class="text-red-400 hover:text-red-600 transition p-1">✕</button>
+    </div>`;
+  document.getElementById('itemsList').appendChild(div);
+}
+
+function removeItem(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// Add initial items
+addItem('网站设计与开发', '项', 1, '');
+addItem('SEO 优化服务', '月', 3, '');
+addItem('品牌视觉设计', '套', 1, '');
+
+function getItems() {
+  const rows = document.getElementById('itemsList').children;
+  const items = [];
+  for (const row of rows) {
+    const name = row.querySelector('.item-name').value.trim();
+    const unit = row.querySelector('.item-unit').value.trim();
+    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+    if (name) items.push({ name, unit: unit || '项', qty, price });
+  }
+  return items;
+}
+
+function generatePreview() {
+  const company = document.getElementById('companyName').value.trim() || '您的公司名称';
+  const phone = document.getElementById('companyPhone').value.trim();
+  const email = document.getElementById('companyEmail').value.trim();
+  const client = document.getElementById('clientName').value.trim() || '客户名称';
+  const notes = document.getElementById('notes').value.trim();
+  const items = getItems();
+
+  if (items.length === 0) {
+    alert('请至少添加一个项目');
+    return;
+  }
+
+  const today = new Date();
+  const dateStr = today.getFullYear() + '年' + (today.getMonth()+1) + '月' + today.getDate() + '日';
+  const quoteNo = 'QT-' + today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0') + '-' + String(Math.floor(Math.random()*9000)+1000);
+
+  const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const tax = subtotal * 0.06;
+  const total = subtotal + tax;
+
+  const rowsHtml = items.map((item, i) => {
+    const lineTotal = item.qty * item.price;
+    return `<tr class="${i%2===0?'bg-gray-50':'bg-white'}">
+      <td class="px-4 py-3 text-sm text-gray-700">${i+1}</td>
+      <td class="px-4 py-3 text-sm text-gray-800 font-medium">${escapeHtml(item.name)}</td>
+      <td class="px-4 py-3 text-sm text-gray-600 text-center">${escapeHtml(item.unit)}</td>
+      <td class="px-4 py-3 text-sm text-gray-600 text-center">${item.qty}</td>
+      <td class="px-4 py-3 text-sm text-gray-600 text-right">¥${item.price.toFixed(2)}</td>
+      <td class="px-4 py-3 text-sm text-gray-800 font-medium text-right">¥${lineTotal.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `
+    <div class="p-6 md:p-8">
+      <!-- Header -->
+      <div class="flex justify-between items-start mb-6 pb-4 border-b-2 border-brand-500">
+        <div>
+          <h1 class="text-2xl font-black text-gray-800">报价单</h1>
+          <p class="text-xs text-gray-400 mt-1">${quoteNo}</p>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-gray-800">${escapeHtml(company)}</p>
+          ${phone ? `<p class="text-xs text-gray-500">${escapeHtml(phone)}</p>` : ''}
+          ${email ? `<p class="text-xs text-gray-500">${escapeHtml(email)}</p>` : ''}
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="text-xs text-gray-400 mb-1">客户名称</p>
+          <p class="font-bold text-gray-800">${escapeHtml(client)}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="text-xs text-gray-400 mb-1">日期</p>
+          <p class="font-bold text-gray-800">${dateStr}</p>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <table class="w-full mb-6">
+        <thead>
+          <tr class="bg-brand-500 text-white text-xs">
+            <th class="px-4 py-2.5 text-left rounded-tl-lg">#</th>
+            <th class="px-4 py-2.5 text-left">项目名称</th>
+            <th class="px-4 py-2.5 text-center">单位</th>
+            <th class="px-4 py-2.5 text-center">数量</th>
+            <th class="px-4 py-2.5 text-right">单价</th>
+            <th class="px-4 py-2.5 text-right rounded-tr-lg">小计</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="flex justify-end mb-6">
+        <div class="w-48">
+          <div class="flex justify-between py-1.5 text-sm text-gray-600">
+            <span>合计</span><span>¥${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between py-1.5 text-sm text-gray-600">
+            <span>税费 (6%)</span><span>¥${tax.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between py-2.5 border-t-2 border-brand-500 mt-1">
+            <span class="font-bold text-gray-800">总计</span>
+            <span class="font-black text-xl text-brand-600">¥${total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      ${notes ? `<div class="bg-gray-50 rounded-lg p-3 mb-6">
+        <p class="text-xs text-gray-400 mb-1">备注</p>
+        <p class="text-sm text-gray-700 whitespace-pre-line">${escapeHtml(notes)}</p>
+      </div>` : ''}
+
+      <!-- Footer -->
+      <div class="text-center text-xs text-gray-400 pt-4 border-t">
+        <p>感谢您的信任与支持！</p>
+      </div>
+    </div>`;
+
+  document.getElementById('quotationPreview').innerHTML = html;
+  document.getElementById('printBtn').disabled = false;
+  document.querySelector('.no-print.text-center').style.display = 'none';
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
